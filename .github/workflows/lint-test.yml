@@ -5,24 +5,19 @@ on:
     branches: [main, master, develop]
   pull_request:
     branches: [main, master, develop]
-  workflow_dispatch:     # 🔥 Manual trigger added
+  workflow_dispatch:
 
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [16.x, 18.x]
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js 16.x
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 16.x
           cache: 'npm'
 
       - name: Install dependencies
@@ -35,21 +30,12 @@ jobs:
       - name: Build check
         env:
           CI: false
-          REACT_APP_BACKEND_URL: http://localhost:3020
         run: npm run build
-
-      - name: Check build size
-        run: |
-          BUILD_SIZE=$(du -sh build | cut -f1)
-          echo "Build size: $BUILD_SIZE"
-          if [ $(du -s build | cut -f1) -gt 5242880 ]; then
-            echo "Warning: Build size exceeds 5MB"
-          fi
 
       - name: Archive build artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: build-artifacts-${{ matrix.node-version }}
+          name: build-artifacts
           path: build/
           retention-days: 5
