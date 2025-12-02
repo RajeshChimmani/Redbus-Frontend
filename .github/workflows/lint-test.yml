@@ -45,7 +45,7 @@ jobs:
           fi
 
       - name: Archive build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: build-artifacts-${{ matrix.node-version }}
