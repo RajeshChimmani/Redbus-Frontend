@@ -1,0 +1,53 @@
+name: Frontend Code Quality & Tests
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint check
+        run: npx eslint src --max-warnings 10
+        continue-on-error: true
+
+      - name: Build check
+        env:
+          CI: false
+          REACT_APP_BACKEND_URL: http://localhost:3020
+        run: npm run build
+
+      - name: Check build size
+        run: |
+          BUILD_SIZE=$(du -sh build | cut -f1)
+          echo "Build size: $BUILD_SIZE"
+          if [ $(du -s build | cut -f1) -gt 5242880 ]; then
+            echo "Warning: Build size exceeds 5MB"
+          fi
+
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: build-artifacts-${{ matrix.node-version }}
+          path: build/
+          retention-days: 5
