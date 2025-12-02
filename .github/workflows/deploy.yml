@@ -1,4 +1,4 @@
-name: Build and Deploy Frontend to GitHub Pages
+name: Build and Deploy
 
 on:
   push:
@@ -10,50 +10,48 @@ on:
       - main
       - master
   workflow_dispatch: {
-    
+
   }
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x]
-
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Use Node.js 16.x
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 16.x
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm install
 
-      - name: Build application
-        env:
-          REACT_APP_BACKEND_URL: ${{ secrets.REACT_APP_BACKEND_URL }}
-          CI: false
+      - name: Build Project
         run: npm run build
 
-      - name: Run tests (if available)
-        run: npm test -- --coverage --watchAll=false
-        continue-on-error: true
+      - name: Upload Production Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: production-build
+          path: build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download Build Files
+        uses: actions/download-artifact@v3
+        with:
+          name: production-build
+          path: build
 
       - name: Deploy to GitHub Pages
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-output-node-${{ matrix.node-version }}
-          path: build/
-          retention-days: 7
+          publish_dir: build
